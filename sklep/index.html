@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="pl">
+
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>SmartShop</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+
+<style>
+
+*{box-sizing:border-box}
+
+body{
+font-family:Poppins;
+margin:0;
+background:#f4f4f4;
+color:#1f2937;
+}
+
+header{
+background:#111827;
+color:white;
+display:flex;
+justify-content:space-between;
+align-items:center;
+padding:15px 20px;
+flex-wrap:wrap;
+gap:10px;
+}
+
+header input{
+padding:10px;
+border-radius:6px;
+border:none;
+width:250px;
+}
+
+.cart-btn{
+background:#16a34a;
+padding:10px 15px;
+border-radius:20px;
+cursor:pointer;
+}
+
+.container{
+width:92%;
+max-width:1200px;
+margin:auto;
+padding:30px 0;
+}
+
+.products{
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+gap:25px;
+}
+
+.product{
+background:white;
+padding:20px;
+border-radius:12px;
+box-shadow:0 10px 25px rgba(0,0,0,0.08);
+text-align:center;
+}
+
+.product img{
+width:100%;
+border-radius:10px;
+}
+
+.price{
+font-size:20px;
+font-weight:600;
+margin-top:5px;
+}
+
+button{
+background:#16a34a;
+color:white;
+border:none;
+padding:10px 20px;
+border-radius:20px;
+cursor:pointer;
+margin-top:10px;
+}
+
+button:hover{
+background:#15803d;
+}
+
+.delete-btn{
+background:red;
+}
+
+.cart{
+position:fixed;
+right:-360px;
+top:0;
+width:340px;
+height:100%;
+background:white;
+box-shadow:-5px 0 25px rgba(0,0,0,0.2);
+padding:20px;
+transition:0.4s;
+overflow:auto;
+z-index:1001;
+}
+
+.cart.open{
+right:0;
+}
+
+#overlay{
+position:fixed;
+top:0;
+left:0;
+width:100%;
+height:100%;
+background:rgba(0,0,0,0.5);
+display:none;
+z-index:1000;
+}
+
+#overlay.show{
+display:block;
+}
+
+.cart-item{
+display:flex;
+justify-content:space-between;
+margin-bottom:10px;
+font-size:14px;
+}
+
+input{
+width:100%;
+padding:10px;
+margin-top:10px;
+border-radius:6px;
+border:1px solid #ccc;
+}
+
+.admin{
+background:white;
+padding:20px;
+border-radius:10px;
+margin-bottom:40px;
+}
+
+footer{
+background:#111827;
+color:white;
+text-align:center;
+padding:20px;
+margin-top:40px;
+}
+
+@media(max-width:600px){
+
+header{flex-direction:column}
+
+header input{width:100%}
+
+.cart{width:100%}
+
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div id="overlay" onclick="toggleCart()"></div>
+
+<header>
+
+<h2>SmartShop</h2>
+
+<input id="search" placeholder="Szukaj produktu..." onkeyup="searchProducts(this.value)">
+
+<div class="cart-btn" onclick="toggleCart()">
+Koszyk (<span id="count">0</span>)
+</div>
+
+</header>
+
+<div class="container">
+
+<h2>Logowanie admina</h2>
+
+<input id="loginUser" placeholder="login">
+<input id="loginPass" type="password" placeholder="hasło">
+
+<button onclick="login()">Zaloguj</button>
+
+<div id="adminPanel" class="admin" style="display:none">
+
+<h3>Dodaj produkt</h3>
+
+<input id="pname" placeholder="nazwa produktu">
+<input id="pprice" placeholder="cena">
+<input id="pimg" placeholder="link do zdjęcia">
+
+<button onclick="addProduct()">Dodaj produkt</button>
+
+</div>
+
+<div id="products" class="products"></div>
+
+</div>
+
+<div id="cart" class="cart">
+
+<h2>Twój koszyk</h2>
+
+<div id="cartItems"></div>
+
+<h3>Suma: <span id="total">0</span> zł</h3>
+
+<input placeholder="Imię i nazwisko">
+<input placeholder="Adres dostawy">
+<input placeholder="Email">
+
+<button onclick="order()">Złóż zamówienie</button>
+
+</div>
+
+<footer>
+© 2026 SmartShop
+</footer>
+
+<script>
+
+let cart=[]
+
+let products = JSON.parse(localStorage.getItem("products")) || [
+
+{name:"Słuchawki Bluetooth",price:99,img:"https://picsum.photos/300?1",rating:"★★★★★"},
+{name:"Smartwatch",price:199,img:"https://picsum.photos/300?2",rating:"★★★★☆"},
+{name:"Głośnik Bluetooth",price:129,img:"https://picsum.photos/300?3",rating:"★★★★★"},
+{name:"Powerbank",price:89,img:"https://picsum.photos/300?4",rating:"★★★★★"},
+{name:"Lampa LED",price:59,img:"https://picsum.photos/300?5",rating:"★★★★☆"},
+{name:"Kamera WiFi",price:149,img:"https://picsum.photos/300?6",rating:"★★★★★"},
+{name:"Mysz Gamingowa",price:79,img:"https://picsum.photos/300?7",rating:"★★★★★"},
+{name:"Klawiatura RGB",price:129,img:"https://picsum.photos/300?8",rating:"★★★★☆"},
+{name:"Ładowarka USB-C",price:39,img:"https://picsum.photos/300?9",rating:"★★★★★"},
+{name:"Statyw",price:45,img:"https://picsum.photos/300?10",rating:"★★★★★"},
+{name:"Ring Light",price:89,img:"https://picsum.photos/300?11",rating:"★★★★☆"},
+{name:"Mini głośnik",price:59,img:"https://picsum.photos/300?12",rating:"★★★★★"},
+{name:"Słuchawki Gaming",price:149,img:"https://picsum.photos/300?13",rating:"★★★★★"},
+{name:"Pad do gier",price:119,img:"https://picsum.photos/300?14",rating:"★★★★☆"},
+{name:"Mata XXL",price:49,img:"https://picsum.photos/300?15",rating:"★★★★★"},
+{name:"Hub USB",price:39,img:"https://picsum.photos/300?16",rating:"★★★★★"},
+{name:"Wentylator USB",price:29,img:"https://picsum.photos/300?17",rating:"★★★★☆"},
+{name:"Lampka biurkowa",price:69,img:"https://picsum.photos/300?18",rating:"★★★★★"},
+{name:"Powerbank Slim",price:79,img:"https://picsum.photos/300?19",rating:"★★★★★"},
+{name:"Ładowarka bezprzewodowa",price:69,img:"https://picsum.photos/300?20",rating:"★★★★☆"},
+{name:"Smartband",price:119,img:"https://picsum.photos/300?21",rating:"★★★★★"},
+{name:"Kabel USB-C",price:25,img:"https://picsum.photos/300?22",rating:"★★★★★"},
+{name:"Adapter HDMI",price:35,img:"https://picsum.photos/300?23",rating:"★★★★☆"},
+{name:"Lampka nocna",price:49,img:"https://picsum.photos/300?24",rating:"★★★★★"},
+{name:"Mini projektor",price:299,img:"https://picsum.photos/300?25",rating:"★★★★★"},
+{name:"Soundbar",price:249,img:"https://picsum.photos/300?26",rating:"★★★★★"},
+{name:"Mikrofon USB",price:159,img:"https://picsum.photos/300?27",rating:"★★★★☆"},
+{name:"Kamera internetowa",price:139,img:"https://picsum.photos/300?28",rating:"★★★★★"},
+{name:"Podkładka chłodząca",price:89,img:"https://picsum.photos/300?29",rating:"★★★★☆"},
+{name:"Stacja dokująca",price:199,img:"https://picsum.photos/300?30",rating:"★★★★★"}
+
+]
+
+function renderProducts(){
+
+let div=document.getElementById("products")
+
+div.innerHTML=""
+
+products.forEach((p,i)=>{
+
+div.innerHTML+=`
+
+<div class="product">
+
+<img src="${p.img}">
+<h3>${p.name}</h3>
+<p>${p.rating}</p>
+<div class="price">${p.price} zł</div>
+
+<button onclick="addToCart(${i})">Dodaj do koszyka</button>
+
+<button class="delete-btn" onclick="deleteProduct(${i})">Usuń</button>
+
+</div>
+
+`
+
+})
+
+}
+
+renderProducts()
+
+function addToCart(i){
+
+cart.push(products[i])
+
+updateCart()
+
+toggleCart()
+
+}
+
+function updateCart(){
+
+document.getElementById("count").innerText=cart.length
+
+let html=""
+let total=0
+
+cart.forEach((p,index)=>{
+
+html+=`
+
+<div class="cart-item">
+
+${p.name} - ${p.price} zł
+
+<button onclick="removeItem(${index})">X</button>
+
+</div>
+
+`
+
+total+=p.price
+
+})
+
+document.getElementById("cartItems").innerHTML=html
+document.getElementById("total").innerText=total
+
+}
+
+function removeItem(index){
+
+cart.splice(index,1)
+
+updateCart()
+
+}
+
+function toggleCart(){
+
+document.getElementById("cart").classList.toggle("open")
+document.getElementById("overlay").classList.toggle("show")
+
+}
+
+function order(){
+
+alert("Dziękujemy za zamówienie!")
+
+cart=[]
+
+updateCart()
+
+toggleCart()
+
+}
+
+function login(){
+
+let u=document.getElementById("loginUser").value
+let p=document.getElementById("loginPass").value
+
+if(u==="admin" && p==="1234"){
+
+document.getElementById("adminPanel").style.display="block"
+
+}else{
+
+alert("Błędne dane logowania")
+
+}
+
+}
+
+function addProduct(){
+
+let name=document.getElementById("pname").value
+let price=Number(document.getElementById("pprice").value)
+let img=document.getElementById("pimg").value
+
+products.push({name,price,img,rating:"★★★★★"})
+
+localStorage.setItem("products",JSON.stringify(products))
+
+renderProducts()
+
+}
+
+function deleteProduct(index){
+
+if(confirm("Usunąć produkt?")){
+
+products.splice(index,1)
+
+localStorage.setItem("products",JSON.stringify(products))
+
+renderProducts()
+
+}
+
+}
+
+function searchProducts(value){
+
+value=value.toLowerCase()
+
+document.querySelectorAll(".product").forEach(p=>{
+
+let text=p.innerText.toLowerCase()
+
+p.style.display = text.includes(value) ? "block" : "none"
+
+})
+
+}
+
+</script>
+
+</body>
+</html>
+
